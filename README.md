@@ -44,7 +44,8 @@ All settings are optional environment variables (see [`.env.example`](.env.examp
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `SECRET_KEY` | `dev-change-me` | Flask signing key — **set this in production** |
+| `SECRET_KEY` | random per start | Flask signing key — **set a fixed value in production** |
+| `FLASK_DEBUG` | `0` | Set to `1` to enable debug + auto-reload in dev (`run.py` only) |
 | `UPLOAD_FOLDER` | OS temp dir | Where optimised files are written before download |
 | `FILE_TTL_SECONDS` | `900` | Lifetime of an optimised file before cleanup |
 | `RATELIMIT_STORAGE_URI` | `memory://` | Rate-limit backend; use Redis for multiple workers |
@@ -68,7 +69,8 @@ run.py           # dev entrypoint
 
 ## Running in production
 
-`run.py` enables debug mode and is for development only. Serve with a WSGI server:
+`run.py` is a convenience dev server (debug is off unless `FLASK_DEBUG=1`). For
+production, serve with a WSGI server:
 
 ```bash
 pip install gunicorn
