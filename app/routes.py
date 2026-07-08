@@ -20,9 +20,19 @@ from flask import (
 
 from . import limiter
 from .optimizer import (
+    BLUR_DEFAULT,
+    BLUR_MAX,
+    BLUR_MIN,
+    BRIGHTNESS_DEFAULT,
+    BRIGHTNESS_MAX,
+    BRIGHTNESS_MIN,
+    CONTRAST_DEFAULT,
+    CONTRAST_MAX,
+    CONTRAST_MIN,
     DEFAULT_PRESET,
     EXT_BY_FORMAT,
     MIME_BY_FORMAT,
+    OUTPUT_FORMATS,
     PRESETS,
     QUALITY_DEFAULT,
     QUALITY_MAX,
@@ -30,9 +40,13 @@ from .optimizer import (
     RESIZE_DEFAULT,
     RESIZE_MAX,
     RESIZE_MIN,
+    SHARPEN_DEFAULT,
+    SHARPEN_MAX,
+    SHARPEN_MIN,
     clamp,
     effective_quality,
     optimize_image,
+    resolve_output_format,
 )
 from .validators import validate_image, ValidationError
 
@@ -80,6 +94,19 @@ def index():
         resize_min=RESIZE_MIN,
         resize_max=RESIZE_MAX,
         resize_default=RESIZE_DEFAULT,
+        brightness_min=BRIGHTNESS_MIN,
+        brightness_max=BRIGHTNESS_MAX,
+        brightness_default=BRIGHTNESS_DEFAULT,
+        contrast_min=CONTRAST_MIN,
+        contrast_max=CONTRAST_MAX,
+        contrast_default=CONTRAST_DEFAULT,
+        sharpen_min=SHARPEN_MIN,
+        sharpen_max=SHARPEN_MAX,
+        sharpen_default=SHARPEN_DEFAULT,
+        blur_min=BLUR_MIN,
+        blur_max=BLUR_MAX,
+        blur_default=BLUR_DEFAULT,
+        output_formats=list(OUTPUT_FORMATS),
         presets=list(PRESETS.keys()),
         default_preset=DEFAULT_PRESET,
         presets_json=presets_json,
@@ -104,9 +131,14 @@ def optimize():
         return jsonify(error=str(exc)), 400
 
     preset = _preset_param()
+    output_fmt = resolve_output_format(request.form.get("format"), fmt)
     quality_requested = _int_param("quality", QUALITY_DEFAULT, QUALITY_MIN, QUALITY_MAX)
     quality = effective_quality(quality_requested, preset)
     resize_percent = _int_param("resize", RESIZE_DEFAULT, RESIZE_MIN, RESIZE_MAX)
+    brightness = _int_param("brightness", BRIGHTNESS_DEFAULT, BRIGHTNESS_MIN, BRIGHTNESS_MAX)
+    contrast = _int_param("contrast", CONTRAST_DEFAULT, CONTRAST_MIN, CONTRAST_MAX)
+    sharpen = _int_param("sharpen", SHARPEN_DEFAULT, SHARPEN_MIN, SHARPEN_MAX)
+    blur = _int_param("blur", BLUR_DEFAULT, BLUR_MIN, BLUR_MAX)
     strip_metadata = _bool_param("strip", True)
     auto_orient = _bool_param("orient", True)
 
@@ -114,11 +146,16 @@ def optimize():
         data, meta = optimize_image(
             raw,
             fmt,
+            output_fmt=output_fmt,
             quality=quality,
             resize_percent=resize_percent,
             strip_metadata=strip_metadata,
             auto_orient=auto_orient,
             preset=preset,
+            brightness=brightness,
+            contrast=contrast,
+            sharpen=sharpen,
+            blur=blur,
         )
     except Exception:  # noqa: BLE001 - never leak Pillow internals to the client
         current_app.logger.exception("Optimization failed for %s", file.filename)
@@ -128,26 +165,33 @@ def optimize():
     optimized_size = len(data)
     savings = round((1 - optimized_size / original_size) * 100, 1) if original_size else 0
 
-    is_png = fmt == "PNG"
+    is_png = output_fmt == "PNG"
     meta_header = {
-        "format": fmt,
-        "download_name": f"optimized.{EXT_BY_FORMAT[fmt]}",
+        "format": output_fmt,
+        "source_format": fmt,
+        "converted": output_fmt != fmt,
+        "download_name": f"optimized.{EXT_BY_FORMAT[output_fmt]}",
         "original_size": original_size,
         "optimized_size": optimized_size,
         "savings": savings,
         **meta,
         "applied": {
             "preset": preset,
+            "output_format": output_fmt,
             "quality": None if is_png else quality,
             "quality_requested": None if is_png else quality_requested,
             "resize_percent": resize_percent,
+            "brightness": brightness,
+            "contrast": contrast,
+            "sharpen": sharpen,
+            "blur": blur,
             "strip_metadata": strip_metadata,
             "auto_orient": auto_orient,
             "lossless": is_png,
         },
     }
 
-    resp = Response(data, mimetype=MIME_BY_FORMAT[fmt])
+    resp = Response(data, mimetype=MIME_BY_FORMAT[output_fmt])
     resp.headers["X-Optimize-Meta"] = json.dumps(meta_header)
     resp.headers["Cache-Control"] = "no-store"
     return resp

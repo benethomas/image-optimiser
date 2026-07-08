@@ -2,7 +2,11 @@
 
 const ACCEPTED_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
 const MAX_BYTES = 25 * 1024 * 1024;
-const { presets: PRESETS, qualityDefault: QUALITY_DEFAULT } = window.OPT_CONFIG;
+const {
+  presets: PRESETS,
+  qualityDefault: QUALITY_DEFAULT,
+  defaults: ADJUST_DEFAULTS,
+} = window.OPT_CONFIG;
 
 const dropzone = document.getElementById("dropzone");
 const fileInput = document.getElementById("file-input");
@@ -16,6 +20,15 @@ const qualityValue = document.getElementById("quality-value");
 const qualityHint = document.getElementById("quality-hint");
 const resizeInput = document.getElementById("resize");
 const resizeValue = document.getElementById("resize-value");
+const formatHint = document.getElementById("format-hint");
+const brightnessInput = document.getElementById("brightness");
+const brightnessValue = document.getElementById("brightness-value");
+const contrastInput = document.getElementById("contrast");
+const contrastValue = document.getElementById("contrast-value");
+const sharpenInput = document.getElementById("sharpen");
+const sharpenValue = document.getElementById("sharpen-value");
+const blurInput = document.getElementById("blur");
+const blurValue = document.getElementById("blur-value");
 const stripInput = document.getElementById("strip");
 const orientInput = document.getElementById("orient");
 
@@ -59,8 +72,30 @@ function extensionOf(name) {
   return name.includes(".") ? name.split(".").pop().toLowerCase() : "";
 }
 
-function isPng(file) {
-  return file && extensionOf(file.name) === "png";
+// Pillow-style format name for a file's extension.
+function formatOf(file) {
+  if (!file) return null;
+  const ext = extensionOf(file.name);
+  if (ext === "jpg" || ext === "jpeg") return "JPEG";
+  if (ext === "png") return "PNG";
+  if (ext === "webp") return "WEBP";
+  return null;
+}
+
+function selectedFormat() {
+  const checked = document.querySelector('input[name="format"]:checked');
+  return checked ? checked.value : "";
+}
+
+// The format the output will actually be: the chosen conversion, or the
+// uploaded file's own format when "Original" is selected.
+function outputFormat() {
+  return selectedFormat() || formatOf(currentFile);
+}
+
+// PNG output is lossless -> quality is ignored, regardless of input format.
+function outputIsPng() {
+  return outputFormat() === "PNG";
 }
 
 function selectedPreset() {
@@ -96,23 +131,40 @@ function clearError() {
 function readParams() {
   return {
     preset: selectedPreset(),
+    format: selectedFormat(),
     quality: Number(qualityInput.value),
     resize: Number(resizeInput.value),
+    brightness: Number(brightnessInput.value),
+    contrast: Number(contrastInput.value),
+    sharpen: Number(sharpenInput.value),
+    blur: Number(blurInput.value),
     strip: stripInput.checked,
     orient: orientInput.checked,
   };
 }
 
+const FORMAT_LABELS = { JPEG: "JPEG", PNG: "PNG", WEBP: "WebP" };
+
 function updateSummary() {
   const p = readParams();
   qualityValue.textContent = p.quality;
   resizeValue.textContent = `${p.resize}%`;
+  brightnessValue.textContent = `${p.brightness}%`;
+  contrastValue.textContent = `${p.contrast}%`;
+  sharpenValue.textContent = p.sharpen;
+  blurValue.textContent = p.blur;
 
-  const png = isPng(currentFile);
+  const png = outputIsPng();
+  const outFmt = outputFormat();
   const parts = [];
 
   if (currentFile) {
-    parts.push(png ? "PNG (lossless)" : extensionOf(currentFile.name).toUpperCase());
+    const src = formatOf(currentFile);
+    if (outFmt && outFmt !== src) {
+      parts.push(`${FORMAT_LABELS[src] || src} → ${FORMAT_LABELS[outFmt]}`);
+    } else {
+      parts.push(png ? "PNG (lossless)" : FORMAT_LABELS[outFmt] || "—");
+    }
   }
   parts.push(`preset: ${p.preset.replace("_", " ")}`);
 
@@ -124,20 +176,34 @@ function updateSummary() {
   }
 
   parts.push(`size: ${p.resize}%`);
+
+  const adj = [];
+  if (p.brightness !== ADJUST_DEFAULTS.brightness) adj.push(`brightness ${p.brightness}%`);
+  if (p.contrast !== ADJUST_DEFAULTS.contrast) adj.push(`contrast ${p.contrast}%`);
+  if (p.sharpen !== ADJUST_DEFAULTS.sharpen) adj.push(`sharpen ${p.sharpen}`);
+  if (p.blur !== ADJUST_DEFAULTS.blur) adj.push(`blur ${p.blur}`);
+  parts.push(adj.length ? adj.join(", ") : "no adjustments");
+
   parts.push(p.strip ? "metadata stripped" : "metadata kept");
   parts.push(p.orient ? "auto-orient on" : "auto-orient off");
 
   summaryEl.textContent = parts.join(" · ");
 }
 
-// PNG is lossless -> quality has no effect; reflect that in the control.
+// PNG output is lossless -> quality has no effect; reflect that in the control.
+// Also update the format hint to explain the current conversion choice.
 function syncQualityAvailability() {
-  const png = isPng(currentFile);
+  const png = outputIsPng();
   qualityInput.disabled = png;
   qualityControl.classList.toggle("is-disabled", png);
   qualityHint.textContent = png
     ? "PNG is lossless — quality is ignored."
     : "Applies to JPEG & WebP only.";
+
+  const chosen = selectedFormat();
+  formatHint.textContent = chosen
+    ? `Converting to ${FORMAT_LABELS[chosen] || chosen}.`
+    : "Keeps the uploaded format.";
 }
 
 /* ---------- before / after rendering ---------- */
@@ -226,8 +292,13 @@ async function runOptimize() {
   const formData = new FormData();
   formData.append("image", currentFile);
   formData.append("preset", params.preset);
+  formData.append("format", params.format);
   formData.append("quality", params.quality);
   formData.append("resize", params.resize);
+  formData.append("brightness", params.brightness);
+  formData.append("contrast", params.contrast);
+  formData.append("sharpen", params.sharpen);
+  formData.append("blur", params.blur);
   formData.append("strip", params.strip ? "1" : "0");
   formData.append("orient", params.orient ? "1" : "0");
 
@@ -291,13 +362,27 @@ function handleFile(file) {
 /* ---------- wiring ---------- */
 
 // Slider drag: update text instantly (cheap). Re-encode only on release.
-[qualityInput, resizeInput].forEach((el) =>
-  el.addEventListener("input", updateSummary)
+[
+  qualityInput,
+  resizeInput,
+  brightnessInput,
+  contrastInput,
+  sharpenInput,
+  blurInput,
+].forEach((el) => el.addEventListener("input", updateSummary));
+
+// Changing the output format may flip quality on/off (PNG is lossless), so
+// keep the quality control in sync before re-encoding.
+document.querySelectorAll('input[name="format"]').forEach((el) =>
+  el.addEventListener("change", syncQualityAvailability)
 );
 
 // A settled change to any control re-runs optimisation (if a file is loaded).
 document
-  .querySelectorAll('input[name="preset"], #quality, #resize, #strip, #orient')
+  .querySelectorAll(
+    'input[name="preset"], input[name="format"], #quality, #resize, ' +
+      "#brightness, #contrast, #sharpen, #blur, #strip, #orient"
+  )
   .forEach((el) =>
     el.addEventListener("change", () => {
       updateSummary();

@@ -44,6 +44,23 @@
       </div>
     </div>
 
+    <div class="control">
+      <span class="control__label">Convert to</span>
+      <div class="segmented" role="radiogroup" aria-label="Output format">
+        <label class="segmented__item">
+          <input type="radio" name="format" value="" checked />
+          <span>Original</span>
+        </label>
+        {% for fmt in output_formats %}
+        <label class="segmented__item">
+          <input type="radio" name="format" value="{{ fmt }}" />
+          <span>{{ 'WebP' if fmt == 'WEBP' else fmt }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <p class="control__hint" id="format-hint">Keeps the uploaded format.</p>
+    </div>
+
     <div class="control" id="quality-control">
       <label class="control__label" for="quality">
         Quality <span class="control__value" id="quality-value">{{ quality_default }}</span>
@@ -72,6 +89,65 @@
         value="{{ resize_default }}"
       />
       <p class="control__hint">Aspect ratio preserved. 100% keeps original size.</p>
+    </div>
+
+    <div class="control control--group" role="group" aria-label="Image adjustments">
+      <span class="control__label">Adjustments</span>
+      <div class="adjustments">
+        <div class="adjust">
+          <label class="adjust__label" for="brightness">
+            Brightness <span class="control__value" id="brightness-value">{{ brightness_default }}%</span>
+          </label>
+          <input
+            type="range"
+            id="brightness"
+            name="brightness"
+            min="{{ brightness_min }}"
+            max="{{ brightness_max }}"
+            value="{{ brightness_default }}"
+          />
+        </div>
+        <div class="adjust">
+          <label class="adjust__label" for="contrast">
+            Contrast <span class="control__value" id="contrast-value">{{ contrast_default }}%</span>
+          </label>
+          <input
+            type="range"
+            id="contrast"
+            name="contrast"
+            min="{{ contrast_min }}"
+            max="{{ contrast_max }}"
+            value="{{ contrast_default }}"
+          />
+        </div>
+        <div class="adjust">
+          <label class="adjust__label" for="sharpen">
+            Sharpen <span class="control__value" id="sharpen-value">{{ sharpen_default }}</span>
+          </label>
+          <input
+            type="range"
+            id="sharpen"
+            name="sharpen"
+            min="{{ sharpen_min }}"
+            max="{{ sharpen_max }}"
+            value="{{ sharpen_default }}"
+          />
+        </div>
+        <div class="adjust">
+          <label class="adjust__label" for="blur">
+            Blur <span class="control__value" id="blur-value">{{ blur_default }}</span>
+          </label>
+          <input
+            type="range"
+            id="blur"
+            name="blur"
+            min="{{ blur_min }}"
+            max="{{ blur_max }}"
+            value="{{ blur_default }}"
+          />
+        </div>
+      </div>
+      <p class="control__hint">100% is unchanged for brightness/contrast; 0 is off for sharpen/blur.</p>
     </div>
 
     <div class="control control--inline">
@@ -121,6 +197,12 @@
   window.OPT_CONFIG = {
     presets: {{ presets_json|safe }},
     qualityDefault: {{ quality_default }},
+    defaults: {
+      brightness: {{ brightness_default }},
+      contrast: {{ contrast_default }},
+      sharpen: {{ sharpen_default }},
+      blur: {{ blur_default }},
+    },
   };
 </script>
 {% endblock %}

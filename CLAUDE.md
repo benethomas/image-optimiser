@@ -29,19 +29,25 @@ there's a strong reason — if you must persist, add explicit deletion and docum
 Request path across modules:
 
 - `app/routes.py` — the `main` blueprint. `/optimize` reads the upload fully into memory
-  (bounded by `MAX_CONTENT_LENGTH`), parses/clamps the options (`preset`, `quality`,
-  `resize`, `strip`, `orient`) via the `_*_param` helpers (never trust client values), then
-  calls the optimizer and returns a `Response` of image bytes + a JSON `X-Optimize-Meta`
-  header. `index()` passes the preset quality ranges to the template as JSON so the JS can
-  mirror the soft-clamp for the live summary.
+  (bounded by `MAX_CONTENT_LENGTH`), parses/clamps the options (`preset`, `format`,
+  `quality`, `resize`, `brightness`, `contrast`, `sharpen`, `blur`, `strip`, `orient`) via
+  the `_*_param` helpers (never trust client values), then calls the optimizer and returns a
+  `Response` of image bytes + a JSON `X-Optimize-Meta` header. `format` is the optional
+  output format for conversion (empty = keep the input format), resolved by
+  `resolve_output_format`. `index()` passes the preset quality ranges to the template as JSON
+  so the JS can mirror the soft-clamp for the live summary.
 - `app/validators.py` — **content-based** validation. The allow-list (`JPEG/PNG/WEBP`) is
   checked against the format Pillow *detects*, not the extension, so renamed GIF/SVG and
   spoofed extensions are rejected. `ValidationError` messages are safe to show users.
 - `app/optimizer.py` — the single source of truth for optimisation. `PRESETS` maps each
   preset to encoder params **and** a `quality_range` that `effective_quality()` uses to
   softly clamp the slider. `optimize_image(...)` does auto-orient → capture-metadata →
-  resize → per-format save, returning `(bytes, meta)`. Bounds/defaults
-  (`QUALITY_*`, `RESIZE_*`, `DEFAULT_PRESET`) live here and are imported by routes and the
+  resize → adjustments (`_apply_adjustments`: brightness/contrast via `ImageEnhance`, then
+  blur/sharpen via `ImageFilter`) → per-format save to `output_fmt`, returning
+  `(bytes, meta)`. `output_fmt` may differ from the input format (format conversion);
+  `resolve_output_format()` picks it, defaulting to the source format. Bounds/defaults
+  (`QUALITY_*`, `RESIZE_*`, `BRIGHTNESS_*`, `CONTRAST_*`, `SHARPEN_*`, `BLUR_*`,
+  `OUTPUT_FORMATS`, `DEFAULT_PRESET`) live here and are imported by routes and the
   template. **OpenCV (`cv2`) is intentionally a dependency but off the hot path** —
   `opencv_available()` exists for future features; don't add it to the optimize path lightly.
 - `app/config.py` — env-overridable settings: `MAX_CONTENT_LENGTH` (25 MB), rate-limit

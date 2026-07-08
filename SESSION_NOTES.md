@@ -1,5 +1,6 @@
 # Session Notes
 
+# Session 1 - Complete
 A running record of how this project was built and the decisions behind it.
 For usage see [README.md](README.md); for architecture guidance see [CLAUDE.md](CLAUDE.md).
 
@@ -78,9 +79,10 @@ the `no-store` header. No temp files are written.
 ## Endpoints
 
 - `GET /` — the UI.
-- `POST /optimize` — form fields: `image`, `preset`, `quality`, `resize`, `strip`, `orient`.
-  On success returns image bytes + `X-Optimize-Meta` JSON header; on failure returns
-  `{ "error": ... }` with 400/413/429/500.
+- `POST /optimize` — form fields: `image`, `preset`, `format`, `quality`, `resize`,
+  `brightness`, `contrast`, `sharpen`, `blur`, `strip`, `orient`. On success returns image
+  bytes + `X-Optimize-Meta` JSON header; on failure returns `{ "error": ... }` with
+  400/413/429/500.
 
 ## Possible next steps
 
@@ -88,3 +90,57 @@ the `no-store` header. No temp files are written.
 - Repo description + topics on GitHub.
 - A small CI workflow (lint / smoke test).
 - Optional: use the on-hand OpenCV dependency for smart resize/denoise features.
+
+# Session 2 - Complete
+
+Implementing advanced features.
+
+- Sharpen controls — sliders for sharpening, blur, contrast, brightness.
+- Format conversion — ability to convert between formats (JPEG, PNG, WebP).
+
+## What was added
+
+- **Adjustments** (`_apply_adjustments` in `app/optimizer.py`): brightness and contrast via
+  `ImageEnhance` (percentages, 100 = unchanged), blur via `ImageFilter.GaussianBlur`, and
+  sharpen via `ImageFilter.UnsharpMask` (both 0 = off). Order is tonal → blur → sharpen so
+  sharpening acts on the final pixels. Runs after resize, before encoding. A palette (`P`)
+  image is promoted to RGB/RGBA first (with `transparency` preserved as RGBA).
+- **Format conversion**: `optimize_image` now takes `output_fmt` separate from the detected
+  input `fmt`. `resolve_output_format()` maps the `format` field (empty/`"original"` → keep
+  source; JPEG/PNG/WEBP → convert) and routes uses it for the encoder branch, MIME type,
+  extension, download name, and the `is_png` (lossless) logic. PNG→JPEG reuses the existing
+  alpha-flatten-onto-white path.
+- **UI**: a "Convert to" segmented control (Original/JPEG/PNG/WebP) and a 2×2 grid of
+  adjustment sliders. Quality enable/disable and the summary now key off the *output* format
+  (choosing PNG output disables quality even for a JPEG upload). Slider `input` updates the
+  summary text; a settled `change` re-encodes, same as before.
+
+## Key decisions
+
+- **Output format is authoritative for lossless/quality/MIME**, not the uploaded file's
+  format — so "convert JPEG → PNG" correctly reports lossless and ignores quality.
+- **Adjustments and format are clamped/validated server-side** like every other param
+  (`_int_param` for the sliders, `resolve_output_format` for the format; unknown/bad values
+  fall back to safe defaults rather than erroring).
+- **Still Pillow-only, still in-memory.** OpenCV remains an off-hot-path dependency;
+  brightness/contrast/blur/sharpen all use `ImageEnhance`/`ImageFilter`.
+
+## Verification done
+
+Flask test client: baseline JPEG optimise; PNG(RGBA)→JPEG conversion (alpha flattened,
+decodes, correct MIME/name); JPEG→WebP and JPEG→PNG (PNG reports lossless, quality n/a);
+brightness/contrast/sharpen/blur each change the output bytes on a gradient image and decode
+cleanly; out-of-range/garbage params (`brightness=9999`, `sharpen=abc`, `format=BMP`) clamp
+to defaults with a 200; palette and palette+transparency images pass through adjustments;
+renamed-GIF still rejected. Page renders all new controls; `upload.js` passes `node --check`.
+
+Live server (`PORT=5001`): index + CSS/JS assets all 200; a real multipart JPEG→WebP request
+with brightness/contrast/sharpen applied returned 200, the correct `image/webp` MIME, an
+`X-Optimize-Meta` reflecting the applied params, and bytes that decode as WebP. (Note: tiny
+synthetic images can report negative savings — format overhead outweighs the shrink — which
+the UI correctly shows as "No reduction".)
+
+# Session 2 Focus (original brief)
+
+- Sharpen Conrols - sliders for sharpening, blur, contrast, brightnewss
+- Format Conversion - ability to convert between formats (JPEG, PNG, WebP)

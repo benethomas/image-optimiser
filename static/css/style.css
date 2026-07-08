@@ -74,7 +74,20 @@ body {
 }
 .control { display: flex; flex-direction: column; gap: 0.4rem; }
 .control--inline { flex-direction: row; gap: 1.25rem; align-items: center; flex-wrap: wrap; }
+.control--group { grid-column: 1 / -1; }
 .control.is-disabled { opacity: 0.5; }
+
+/* Adjustment sliders (brightness/contrast/sharpen/blur) */
+.adjustments {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 1.5rem;
+}
+@media (max-width: 640px) {
+  .adjustments { grid-template-columns: 1fr; }
+}
+.adjust { display: flex; flex-direction: column; gap: 0.3rem; }
+.adjust__label { font-size: 0.85rem; }
 .control__label { font-size: 0.9rem; font-weight: 600; }
 .control__value { color: var(--accent); font-variant-numeric: tabular-nums; }
 .control__hint { margin: 0; font-size: 0.78rem; color: var(--muted); }
