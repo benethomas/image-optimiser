@@ -86,4 +86,4 @@ Flask · Flask-Limiter · Pillow · OpenCV (headless) · vanilla JS/CSS
 
 ## License
 
-[MIT](LICENSE) © Ben Thomas
+MIT — see [LICENSE](LICENSE).
