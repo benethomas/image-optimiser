@@ -3,7 +3,7 @@
 {% block content %}
 <header class="header">
   <h1>Image Optimiser</h1>
-  <p class="subtitle">Drop a JPG, PNG or WebP to shrink it. Max 25&nbsp;MB.</p>
+  <p class="subtitle">Drop a JPG, PNG or WebP to shrink it. Max 25&nbsp;MB. Nothing is stored.</p>
 </header>
 
 <form id="upload-form">
@@ -23,6 +23,70 @@
       <p class="dropzone__hint">or click to browse</p>
     </div>
   </label>
+
+  <fieldset class="controls">
+    <legend>Options</legend>
+
+    <div class="control">
+      <span class="control__label">Preset</span>
+      <div class="segmented" role="radiogroup" aria-label="Speed vs quality preset">
+        {% for name in presets %}
+        <label class="segmented__item">
+          <input
+            type="radio"
+            name="preset"
+            value="{{ name }}"
+            {% if name == default_preset %}checked{% endif %}
+          />
+          <span>{{ name.replace('_', ' ') }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="control" id="quality-control">
+      <label class="control__label" for="quality">
+        Quality <span class="control__value" id="quality-value">{{ quality_default }}</span>
+      </label>
+      <input
+        type="range"
+        id="quality"
+        name="quality"
+        min="{{ quality_min }}"
+        max="{{ quality_max }}"
+        value="{{ quality_default }}"
+      />
+      <p class="control__hint" id="quality-hint">Applies to JPEG &amp; WebP only.</p>
+    </div>
+
+    <div class="control">
+      <label class="control__label" for="resize">
+        Resize <span class="control__value" id="resize-value">{{ resize_default }}%</span>
+      </label>
+      <input
+        type="range"
+        id="resize"
+        name="resize"
+        min="{{ resize_min }}"
+        max="{{ resize_max }}"
+        value="{{ resize_default }}"
+      />
+      <p class="control__hint">Aspect ratio preserved. 100% keeps original size.</p>
+    </div>
+
+    <div class="control control--inline">
+      <label class="switch">
+        <input type="checkbox" id="strip" name="strip" checked />
+        <span>Strip metadata (EXIF, GPS, …)</span>
+      </label>
+      <label class="switch">
+        <input type="checkbox" id="orient" name="orient" checked />
+        <span>Auto-orient from EXIF</span>
+      </label>
+    </div>
+
+    <p class="summary" id="summary" aria-live="polite"></p>
+  </fieldset>
 </form>
 
 <p id="error" class="error" role="alert" hidden></p>
@@ -46,9 +110,17 @@
     </div>
     <dl class="stats" id="after-stats" hidden>
       <div><dt>Size</dt><dd id="after-size">—</dd></div>
+      <div><dt>Dimensions</dt><dd id="after-dims">—</dd></div>
       <div><dt>Saved</dt><dd id="after-savings">—</dd></div>
     </dl>
     <a id="download-link" class="button" href="#" download hidden>Download optimised image</a>
   </div>
 </section>
+
+<script>
+  window.OPT_CONFIG = {
+    presets: {{ presets_json|safe }},
+    qualityDefault: {{ quality_default }},
+  };
+</script>
 {% endblock %}

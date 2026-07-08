@@ -54,6 +54,78 @@ body {
 .dropzone__text { margin: 0.25rem 0 0.15rem; }
 .dropzone__hint { margin: 0; color: var(--muted); font-size: 0.9rem; }
 
+/* Controls */
+.controls {
+  margin-top: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 1.25rem 1.25rem 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.5rem;
+}
+.controls legend {
+  padding: 0 0.4rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.control { display: flex; flex-direction: column; gap: 0.4rem; }
+.control--inline { flex-direction: row; gap: 1.25rem; align-items: center; flex-wrap: wrap; }
+.control.is-disabled { opacity: 0.5; }
+.control__label { font-size: 0.9rem; font-weight: 600; }
+.control__value { color: var(--accent); font-variant-numeric: tabular-nums; }
+.control__hint { margin: 0; font-size: 0.78rem; color: var(--muted); }
+
+.controls input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+/* Segmented preset control */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.segmented__item { position: relative; }
+.segmented__item input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.segmented__item span {
+  display: block;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  text-transform: capitalize;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.segmented__item + .segmented__item { border-left: 1px solid var(--border); }
+.segmented__item input:checked + span { background: var(--accent); color: #fff; }
+.segmented__item input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* Checkboxes */
+.switch { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer; }
+.switch input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+/* Live parameter summary */
+.summary {
+  grid-column: 1 / -1;
+  margin: 0.25rem 0 0;
+  padding: 0.6rem 0.8rem;
+  background: var(--surface-2);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .controls { grid-template-columns: 1fr; }
+}
+
 /* Error banner */
 .error {
   margin: 1rem 0 0;

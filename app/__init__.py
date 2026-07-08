@@ -26,9 +26,6 @@ def create_app(config_class=Config):
 
     _register_error_handlers(app)
 
-    from .cleanup import start_cleanup
-    start_cleanup(app)
-
     return app
 
 
