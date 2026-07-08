@@ -1,0 +1,4 @@
+Flask>=3.0
+Flask-Limiter>=3.5
+Pillow>=10.2
+opencv-python-headless>=4.9

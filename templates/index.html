@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header class="header">
+  <h1>Image Optimiser</h1>
+  <p class="subtitle">Drop a JPG, PNG or WebP to shrink it. Max 25&nbsp;MB.</p>
+</header>
+
+<form id="upload-form">
+  <label id="dropzone" for="file-input" class="dropzone" tabindex="0">
+    <input
+      id="file-input"
+      type="file"
+      name="image"
+      accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+      hidden
+    />
+    <div class="dropzone__inner">
+      <svg class="dropzone__icon" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
+        <path fill="currentColor" d="M19 13v5H5v-5H3v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5h-2zM11 3v9.17l-2.59-2.58L7 11l5 5 5-5-1.41-1.41L13 12.17V3h-2z"/>
+      </svg>
+      <p class="dropzone__text"><strong>Drag &amp; drop</strong> an image here</p>
+      <p class="dropzone__hint">or click to browse</p>
+    </div>
+  </label>
+</form>
+
+<p id="error" class="error" role="alert" hidden></p>
+
+<section class="panes">
+  <div class="pane">
+    <h2 class="pane__title">Before</h2>
+    <div class="pane__body" id="before-pane">
+      <p class="pane__placeholder">Your original image will appear here.</p>
+    </div>
+    <dl class="stats" id="before-stats" hidden>
+      <div><dt>Size</dt><dd id="before-size">—</dd></div>
+      <div><dt>Dimensions</dt><dd id="before-dims">—</dd></div>
+    </dl>
+  </div>
+
+  <div class="pane">
+    <h2 class="pane__title">After</h2>
+    <div class="pane__body" id="after-pane">
+      <p class="pane__placeholder" id="after-placeholder">The optimised image will appear here.</p>
+    </div>
+    <dl class="stats" id="after-stats" hidden>
+      <div><dt>Size</dt><dd id="after-size">—</dd></div>
+      <div><dt>Saved</dt><dd id="after-savings">—</dd></div>
+    </dl>
+    <a id="download-link" class="button" href="#" download hidden>Download optimised image</a>
+  </div>
+</section>
+{% endblock %}
